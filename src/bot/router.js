@@ -164,3 +164,53 @@ async function handleCallback(update, env) {
       return;
   }
   }
+/**
+ * ------------------------------------------------
+ * PHASE-5 : TEST ENGINE QUERIES
+ * ------------------------------------------------
+ */
+
+/**
+ * Fetch random MCQs
+ * limit = ?
+ */
+export const SQL_GET_RANDOM_MCQ_SET = `
+SELECT
+  id,
+  question,
+  option_a,
+  option_b,
+  option_c,
+  option_d,
+  correct_option,
+  explanation
+FROM mcq_questions
+ORDER BY RANDOM()
+LIMIT ?
+`;
+
+/**
+ * Save each answer of a test
+ */
+export const SQL_SAVE_TEST_ANSWER = `
+INSERT INTO test_answers (
+  user_id,
+  question_id,
+  selected_option,
+  is_correct,
+  answered_at
+) VALUES (?, ?, ?, ?, ?)
+`;
+
+/**
+ * Save final test result
+ */
+export const SQL_SAVE_TEST_RESULT = `
+INSERT INTO test_results (
+  user_id,
+  correct_answers,
+  total_questions,
+  accuracy,
+  created_at
+) VALUES (?, ?, ?, ?, ?)
+`;
