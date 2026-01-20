@@ -1,103 +1,100 @@
-/**
- * admin.handler.js
- * --------------------------------
- * Phase-6: Admin manual actions
- * Currently supports: /broadcast
- */
+// src/handlers/admin.handler.js
+// PHASE-7: Admin Analytics & Ranking Handler
+// Admin-only commands & callbacks
+// Depends ONLY on engines + services (no router logic here)
 
-import { dbAll } from "../db/d1.js";
+import { getGlobalRanking, getTopRankers } from "../engine/ranking.engine.js";
+import { getSystemAnalytics } from "../engine/analytics.engine.js";
 import { sendMessage } from "../services/telegram.service.js";
+import { isAdmin } from "../config/permissions.js";
 
 /**
- * Admin check
- * (Assumes users table has role = 'admin')
+ * Handle admin commands & callbacks
  */
-const SQL_GET_ADMIN = `
-SELECT id
-FROM users
-WHERE telegram_id = ?
-  AND role = 'admin'
-`;
+export async function adminHandler(ctx) {
+  const { db, chatId, userId, text, callbackData } = ctx;
 
-/**
- * Get all active users
- */
-const SQL_GET_ACTIVE_USERS = `
-SELECT telegram_id
-FROM users
-WHERE is_active = 1
-`;
-
-/**
- * /broadcast <message>
- */
-export async function broadcastMessage(update, env) {
-  const chat = update.message.chat;
-  const text = update.message.text;
-
-  // Only private chat
-  if (chat.type !== "private") {
-    return;
+  // 🔐 Admin check
+  if (!isAdmin(userId)) {
+    return sendMessage(chatId, "⛔ Access denied. Admins only.");
   }
 
-  const telegramId = update.message.from.id;
+  /* =========================
+     ADMIN COMMANDS
+  ========================== */
 
-  // Check admin permission
-  const admin = await dbAll(
-    env,
-    SQL_GET_ADMIN,
-    [telegramId]
-  );
-
-  if (!admin || admin.length === 0) {
+  if (text === "/admin") {
     return sendMessage(
-      env,
-      chat.id,
-      "❌ You are not authorized to use this command."
+      chatId,
+      `👮 Admin Panel
+
+Choose an option:
+• /stats – System analytics
+• /rank – Global ranking
+• /top – Top performers
+`
     );
   }
 
-  const message = text.replace("/broadcast", "").trim();
+  if (text === "/stats") {
+    const stats = await getSystemAnalytics(db);
 
-  if (!message) {
     return sendMessage(
-      env,
-      chat.id,
-      "⚠️ Usage:\n/broadcast <message>"
+      chatId,
+      `📊 System Analytics
+
+👥 Total Students: ${stats.totalUsers}
+📚 Total Study Hours: ${stats.totalStudyHours} hrs
+📝 Total Tests Taken: ${stats.totalTests}
+🎯 Avg Accuracy: ${stats.avgAccuracy}%
+`
     );
   }
 
-  const users = await dbAll(env, SQL_GET_ACTIVE_USERS);
+  if (text === "/rank") {
+    const ranking = await getGlobalRanking(db);
 
-  if (!users || users.length === 0) {
-    return sendMessage(
-      env,
-      chat.id,
-      "ℹ️ No active users found."
-    );
-  }
-
-  const broadcastText =
-    `📢 *Announcement*\n\n${message}`;
-
-  let sent = 0;
-
-  for (const u of users) {
-    try {
-      await sendMessage(env, u.telegram_id, broadcastText);
-      sent++;
-    } catch (err) {
-      console.error(
-        "Broadcast send failed:",
-        u.telegram_id,
-        err.message
-      );
+    if (!ranking.length) {
+      return sendMessage(chatId, "No ranking data available yet.");
     }
+
+    let msg = "🏆 Global Ranking (Top 10)\n\n";
+
+    ranking.slice(0, 10).forEach((u, i) => {
+      msg += `${i + 1}. ${u.name || "Student"} – ${Math.round(
+        u.study_minutes
+      )} min | ${Math.round(u.avg_accuracy)}%\n`;
+    });
+
+    return sendMessage(chatId, msg);
   }
 
-  return sendMessage(
-    env,
-    chat.id,
-    `✅ Broadcast sent to ${sent} users.`
-  );
+  if (text === "/top") {
+    const top = await getTopRankers(db, 5);
+
+    if (!top.length) {
+      return sendMessage(chatId, "No data available.");
     }
+
+    let msg = "🔥 Top Performers\n\n";
+
+    top.forEach((u, i) => {
+      msg += `${i + 1}. ${u.name || "Student"}\n   📚 ${
+        Math.round(u.study_minutes)
+      } min | 🎯 ${Math.round(u.avg_accuracy)}%\n`;
+    });
+
+    return sendMessage(chatId, msg);
+  }
+
+  /* =========================
+     ADMIN CALLBACKS (FUTURE)
+  ========================== */
+
+  if (callbackData === "ADMIN_DASHBOARD") {
+    return sendMessage(
+      chatId,
+      "👮 Admin dashboard coming soon.\nUse commands for now."
+    );
+  }
+}
