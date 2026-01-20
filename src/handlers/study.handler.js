@@ -147,3 +147,6 @@ function formatDuration(totalMinutes) {
   if (h > 0) return `${h}h ${m}m`;
   return `${m}m`;
     }
+export async function studyHandler(ctx) {
+  return handleStudy(ctx); // existing function
+}
