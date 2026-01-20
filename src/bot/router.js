@@ -1,6 +1,9 @@
 // src/bot/router.js
+
+import { sendMessage } from "../services/telegram.service.js";
+
+// command handlers
 import { startHandler } from "../handlers/start.handler.js";
-import { userHandler } from "../handlers/user.handler.js";
 import { studyHandler } from "../handlers/study.handler.js";
 import { targetHandler } from "../handlers/target.handler.js";
 import { testHandler } from "../handlers/test.handler.js";
@@ -8,70 +11,82 @@ import { reportHandler } from "../handlers/report.handler.js";
 import { adminHandler } from "../handlers/admin.handler.js";
 import { helpHandler } from "../handlers/help.handler.js";
 
-export async function routeUpdate(ctx) {
-  const { text, callbackData } = ctx;
-
+export async function routeUpdate(update, env) {
   try {
-    /* =====================
-       COMMAND ROUTING
-    ====================== */
+    // 🔒 GLOBAL chat_id rule
+    const chatId =
+      update.message?.chat?.id ||
+      update.callback_query?.message?.chat?.id;
 
-    if (text === "/start") return startHandler(ctx);
+    if (!chatId) {
+      console.error("❌ chatId not found in update");
+      return;
+    }
 
-    if (
-      text === "/r" ||
-      text === "/study"
-    )
-      return studyHandler(ctx);
+    // ======================
+    // COMMANDS (/start, /r)
+    // ======================
+    if (update.message?.text) {
+      const text = update.message.text.trim();
 
-    if (text === "/target") return targetHandler(ctx);
+      if (text === "/start") {
+        return await startHandler(chatId, update, env);
+      }
 
-    if (
-      text === "/test" ||
-      text === "/quiz"
-    )
-      return testHandler(ctx);
+      if (text === "/r") {
+        return await reportHandler(chatId, update, env);
+      }
 
-    if (text === "/report") return reportHandler(ctx);
+      if (text === "/help" || text === "/?") {
+        return await helpHandler(chatId, update, env);
+      }
+    }
 
-    if (
-      text === "/help" ||
-      text === "/commands"
-    )
-      return helpHandler(ctx);
+    // ======================
+    // CALLBACK BUTTONS
+    // ======================
+    if (update.callback_query) {
+      const data = update.callback_query.data;
 
-    /* ===== ADMIN COMMANDS ===== */
-    if (
-      text === "/admin" ||
-      text === "/stats" ||
-      text === "/rank" ||
-      text === "/top"
-    )
-      return adminHandler(ctx);
+      switch (data) {
+        case "STUDY_START":
+        case "STUDY_STOP":
+          return await studyHandler(chatId, update, env);
 
-    /* =====================
-       CALLBACK ROUTING
-    ====================== */
+        case "TARGET_MENU":
+          return await targetHandler(chatId, update, env);
 
-    if (callbackData?.startsWith("STUDY_"))
-      return studyHandler(ctx);
+        case "TEST_MENU":
+          return await testHandler(chatId, update, env);
 
-    if (callbackData?.startsWith("TARGET_"))
-      return targetHandler(ctx);
+        case "ADMIN_PANEL":
+          return await adminHandler(chatId, update, env);
 
-    if (callbackData?.startsWith("TEST_"))
-      return testHandler(ctx);
+        case "BACK_TO_MAIN":
+          return await startHandler(chatId, update, env);
 
-    if (callbackData?.startsWith("REPORT_"))
-      return reportHandler(ctx);
-
-    if (callbackData?.startsWith("ADMIN_"))
-      return adminHandler(ctx);
-
-    if (callbackData?.startsWith("HELP_"))
-      return helpHandler(ctx);
-
+        default:
+          console.warn("⚠️ Unknown callback:", data);
+          return;
+      }
+    }
   } catch (err) {
-    console.error("ROUTER ERROR:", err);
+    console.error("❌ ROUTER FATAL ERROR:", err);
+
+    // 🔴 user should ALWAYS get reply
+    try {
+      const chatId =
+        update.message?.chat?.id ||
+        update.callback_query?.message?.chat?.id;
+
+      if (chatId) {
+        await sendMessage(
+          chatId,
+          "⚠️ Temporary error. Please try again."
+        );
+      }
+    } catch (e) {
+      console.error("❌ Failed to send fallback message");
+    }
   }
-}
+                                    }
