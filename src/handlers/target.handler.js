@@ -104,3 +104,6 @@ export async function getTodayTarget(env, userId, date) {
     [userId, date]
   );
       }
+export async function targetHandler(ctx) {
+  return handleTarget(ctx);
+}
