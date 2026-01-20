@@ -56,3 +56,33 @@ export async function answerCallback(callbackQueryId, env, text = "") {
     body: JSON.stringify(payload)
   });
     }
+/**
+ * Edit an existing Telegram message (used in Test Engine)
+ */
+export async function editMessage(chatId, messageId, text, options = {}, env) {
+  if (!chatId || !messageId) {
+    console.error("❌ editMessage: chatId or messageId missing");
+    return;
+  }
+
+  const payload = {
+    chat_id: chatId,
+    message_id: messageId,
+    text,
+    parse_mode: "HTML",
+    ...options
+  };
+
+  const url = `https://api.telegram.org/bot${env.BOT_TOKEN}/editMessageText`;
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    console.error("❌ editMessage failed:", errText);
+  }
+}
