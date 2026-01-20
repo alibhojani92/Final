@@ -63,6 +63,3 @@ export async function dbAll(db, sql, params = []) {
   return await db.prepare(sql).bind(...params).all();
 }
 
-export async function dbRun(db, sql, params = []) {
-  return await db.prepare(sql).bind(...params).run();
-}
