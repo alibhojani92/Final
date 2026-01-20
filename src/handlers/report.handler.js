@@ -90,3 +90,7 @@ function formatDuration(totalMinutes) {
   if (h > 0) return `${h}h ${m}m`;
   return `${m}m`;
     }
+// 🔒 Named export required by router
+export async function reportHandler(chatId, update, env) {
+  return handleReport(chatId, update, env);
+    }
