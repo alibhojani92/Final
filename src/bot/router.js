@@ -2,8 +2,8 @@
  * router.js
  * --------------------------------
  * Central update router (ONE TIME FILE)
- * Phase-1 only
- * NEVER modify after this phase
+ * Phase-1 + Phase-3 wiring
+ * NEVER modify after this
  */
 
 import {
@@ -12,8 +12,7 @@ import {
   isValidCommand,
   normalizeCommand,
   isValidCallback,
-  extractChatId,
-  extractUserId
+  extractChatId
 } from "./validator.js";
 
 import {
@@ -34,12 +33,17 @@ import {
   STREAK_MESSAGE,
   SETTINGS_MESSAGE,
   ADMIN_MENU_MESSAGE,
-  ADMIN_ACCESS_DENIED,
   HELP_MESSAGE,
   UNKNOWN_COMMAND
 } from "./messages.js";
 
 import { sendMessage, editMessage } from "../services/telegram.service.js";
+
+// ✅ PHASE-3 HANDLER IMPORT
+import {
+  startStudy,
+  stopStudy
+} from "../handlers/study.handler.js";
 
 /**
  * MAIN ROUTER
@@ -53,8 +57,6 @@ export async function routeUpdate(update, env) {
     if (isCallbackUpdate(update)) {
       return handleCallback(update, env);
     }
-
-    return;
   } catch (err) {
     console.error("ROUTER ERROR:", err);
   }
@@ -75,37 +77,16 @@ async function handleCommand(update, env) {
 
   switch (command) {
     case "/start":
-      return sendMessage(
-        env,
-        chatId,
-        WELCOME_MESSAGE,
-        mainMenuKeyboard()
-      );
+      return sendMessage(env, chatId, WELCOME_MESSAGE, mainMenuKeyboard());
 
     case "/help":
-      return sendMessage(
-        env,
-        chatId,
-        HELP_MESSAGE,
-        helpKeyboard()
-      );
+      return sendMessage(env, chatId, HELP_MESSAGE, helpKeyboard());
 
-    // Short commands for study (logic later in Phase-3)
     case "/r":
-      return sendMessage(
-        env,
-        chatId,
-        STUDY_MENU_MESSAGE,
-        studyMenuKeyboard()
-      );
+      return startStudy(update, env);
 
     case "/s":
-      return sendMessage(
-        env,
-        chatId,
-        STUDY_MENU_MESSAGE,
-        studyMenuKeyboard()
-      );
+      return stopStudy(update, env);
 
     default:
       return sendMessage(env, chatId, UNKNOWN_COMMAND);
@@ -118,126 +99,49 @@ async function handleCommand(update, env) {
 async function handleCallback(update, env) {
   const data = update.callback_query.data;
   const chatId = extractChatId(update);
+  const messageId = update.callback_query.message.message_id;
 
-  if (!isValidCallback(data)) {
-    return;
-  }
+  if (!isValidCallback(data)) return;
 
   switch (data) {
-    // ----------------------------
-    // MAIN MENU
-    // ----------------------------
+    // -------- MAIN MENU --------
     case "MENU_STUDY":
-      return editMessage(
-        env,
-        chatId,
-        update.callback_query.message.message_id,
-        STUDY_MENU_MESSAGE,
-        studyMenuKeyboard()
-      );
+      return editMessage(env, chatId, messageId, STUDY_MENU_MESSAGE, studyMenuKeyboard());
 
     case "MENU_TEST":
-      return editMessage(
-        env,
-        chatId,
-        update.callback_query.message.message_id,
-        TEST_MENU_MESSAGE,
-        testMenuKeyboard()
-      );
+      return editMessage(env, chatId, messageId, TEST_MENU_MESSAGE, testMenuKeyboard());
 
     case "MENU_PERFORMANCE":
-      return editMessage(
-        env,
-        chatId,
-        update.callback_query.message.message_id,
-        PERFORMANCE_MESSAGE,
-        mainMenuKeyboard()
-      );
+      return editMessage(env, chatId, messageId, PERFORMANCE_MESSAGE, mainMenuKeyboard());
 
     case "MENU_REVISION":
-      return editMessage(
-        env,
-        chatId,
-        update.callback_query.message.message_id,
-        REVISION_MESSAGE,
-        mainMenuKeyboard()
-      );
+      return editMessage(env, chatId, messageId, REVISION_MESSAGE, mainMenuKeyboard());
 
     case "MENU_SCHEDULE":
-      return editMessage(
-        env,
-        chatId,
-        update.callback_query.message.message_id,
-        SCHEDULE_MESSAGE,
-        mainMenuKeyboard()
-      );
+      return editMessage(env, chatId, messageId, SCHEDULE_MESSAGE, mainMenuKeyboard());
 
     case "MENU_STREAK":
-      return editMessage(
-        env,
-        chatId,
-        update.callback_query.message.message_id,
-        STREAK_MESSAGE,
-        mainMenuKeyboard()
-      );
+      return editMessage(env, chatId, messageId, STREAK_MESSAGE, mainMenuKeyboard());
 
     case "MENU_SETTINGS":
-      return editMessage(
-        env,
-        chatId,
-        update.callback_query.message.message_id,
-        SETTINGS_MESSAGE,
-        mainMenuKeyboard()
-      );
+      return editMessage(env, chatId, messageId, SETTINGS_MESSAGE, mainMenuKeyboard());
 
     case "MENU_ADMIN":
-      // Actual admin validation comes in Phase-7
-      return editMessage(
-        env,
-        chatId,
-        update.callback_query.message.message_id,
-        ADMIN_MENU_MESSAGE,
-        adminMenuKeyboard()
-      );
+      return editMessage(env, chatId, messageId, ADMIN_MENU_MESSAGE, adminMenuKeyboard());
 
     case "MENU_HELP":
-      return editMessage(
-        env,
-        chatId,
-        update.callback_query.message.message_id,
-        HELP_MESSAGE,
-        helpKeyboard()
-      );
+      return editMessage(env, chatId, messageId, HELP_MESSAGE, helpKeyboard());
 
-    // ----------------------------
-    // STUDY (LOGIC LATER)
-    // ----------------------------
+    // -------- STUDY (PHASE-3 LIVE) --------
     case "STUDY_START":
+      return startStudy(update, env);
+
     case "STUDY_STOP":
-      return; // Phase-3 handles logic
+      return stopStudy(update, env);
 
-    // ----------------------------
-    // TEST (LOGIC LATER)
-    // ----------------------------
-    case "TEST_START":
-    case "TEST_PRACTICE":
-    case "TEST_ANSWER_A":
-    case "TEST_ANSWER_B":
-    case "TEST_ANSWER_C":
-    case "TEST_ANSWER_D":
-      return; // Phase-5 handles logic
-
-    // ----------------------------
-    // COMMON
-    // ----------------------------
+    // -------- COMMON --------
     case "BACK_TO_MAIN":
-      return editMessage(
-        env,
-        chatId,
-        update.callback_query.message.message_id,
-        WELCOME_MESSAGE,
-        mainMenuKeyboard()
-      );
+      return editMessage(env, chatId, messageId, WELCOME_MESSAGE, mainMenuKeyboard());
 
     default:
       return;
