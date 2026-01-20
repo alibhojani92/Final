@@ -2,7 +2,7 @@
  * router.js
  * --------------------------------
  * Central update router (ONE TIME FILE)
- * Phase-1 + Phase-3 wiring
+ * Phase-1 + Phase-3 + Phase-4 wiring
  * NEVER modify after this
  */
 
@@ -39,11 +39,20 @@ import {
 
 import { sendMessage, editMessage } from "../services/telegram.service.js";
 
-// ✅ PHASE-3 HANDLER IMPORT
+// ===== Phase-3 handlers =====
 import {
   startStudy,
   stopStudy
 } from "../handlers/study.handler.js";
+
+// ===== Phase-4 handlers =====
+import {
+  setDailyTarget
+} from "../handlers/target.handler.js";
+
+import {
+  dailyReport
+} from "../handlers/report.handler.js";
 
 /**
  * MAIN ROUTER
@@ -82,11 +91,19 @@ async function handleCommand(update, env) {
     case "/help":
       return sendMessage(env, chatId, HELP_MESSAGE, helpKeyboard());
 
+    // ---- Phase-3 Study ----
     case "/r":
       return startStudy(update, env);
 
     case "/s":
       return stopStudy(update, env);
+
+    // ---- Phase-4 Target & Report ----
+    case "/target":
+      return setDailyTarget(update, env);
+
+    case "/report":
+      return dailyReport(update, env);
 
     default:
       return sendMessage(env, chatId, UNKNOWN_COMMAND);
@@ -146,4 +163,4 @@ async function handleCallback(update, env) {
     default:
       return;
   }
-}
+  }
