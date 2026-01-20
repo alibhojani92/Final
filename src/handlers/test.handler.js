@@ -205,3 +205,6 @@ async function finishTest(env, chatId, session) {
 
   return sendMessage(env, chatId, message);
 }
+export async function testHandler(ctx) {
+  return handleTest(ctx);
+                    }
