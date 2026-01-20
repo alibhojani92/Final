@@ -1,8 +1,9 @@
 /**
  * router.js
- * --------------------------------
+ * ------------------------------------------------
  * Central update router
- * Phase-1 → Phase-5 wiring (LOCKED)
+ * Phase-1 → Phase-6 FINAL
+ * 🔒 DO NOT MODIFY AFTER THIS
  */
 
 import {
@@ -38,21 +39,18 @@ import {
 
 import { sendMessage, editMessage } from "../services/telegram.service.js";
 
-// ===== Phase-3 =====
-import {
-  startStudy,
-  stopStudy
-} from "../handlers/study.handler.js";
+// Phase-3
+import { startStudy, stopStudy } from "../handlers/study.handler.js";
 
-// ===== Phase-4 =====
+// Phase-4
 import { setDailyTarget } from "../handlers/target.handler.js";
 import { dailyReport } from "../handlers/report.handler.js";
 
-// ===== Phase-5 =====
-import {
-  startTest,
-  handleTestAnswer
-} from "../handlers/test.handler.js";
+// Phase-5
+import { startTest, handleTestAnswer } from "../handlers/test.handler.js";
+
+// Phase-6
+import { broadcastMessage } from "../handlers/admin.handler.js";
 
 /**
  * MAIN ROUTER
@@ -62,7 +60,6 @@ export async function routeUpdate(update, env) {
     if (isCommandUpdate(update)) {
       return handleCommand(update, env);
     }
-
     if (isCallbackUpdate(update)) {
       return handleCallback(update, env);
     }
@@ -91,23 +88,25 @@ async function handleCommand(update, env) {
     case "/help":
       return sendMessage(env, chatId, HELP_MESSAGE, helpKeyboard());
 
-    // ---- Phase-3 (Study) ----
+    // Study
     case "/r":
       return startStudy(update, env);
-
     case "/s":
       return stopStudy(update, env);
 
-    // ---- Phase-4 (Target / Report) ----
+    // Target / Report
     case "/target":
       return setDailyTarget(update, env);
-
     case "/report":
       return dailyReport(update, env);
 
-    // ---- Phase-5 (Test) ----
+    // Test
     case "/test":
       return startTest(update, env);
+
+    // Admin
+    case "/broadcast":
+      return broadcastMessage(update, env);
 
     default:
       return sendMessage(env, chatId, UNKNOWN_COMMAND);
@@ -124,33 +123,17 @@ async function handleCallback(update, env) {
 
   if (!isValidCallback(data)) return;
 
-  // ---- Phase-5 MCQ ANSWERS ----
+  // Test answers
   if (data.startsWith("TEST_")) {
     return handleTestAnswer(update, env);
   }
 
   switch (data) {
-    // -------- MAIN MENU --------
     case "MENU_STUDY":
       return editMessage(env, chatId, messageId, STUDY_MENU_MESSAGE, studyMenuKeyboard());
 
     case "MENU_TEST":
       return editMessage(env, chatId, messageId, TEST_MENU_MESSAGE, testMenuKeyboard());
-
-    case "MENU_PERFORMANCE":
-      return editMessage(env, chatId, messageId, PERFORMANCE_MESSAGE, mainMenuKeyboard());
-
-    case "MENU_REVISION":
-      return editMessage(env, chatId, messageId, REVISION_MESSAGE, mainMenuKeyboard());
-
-    case "MENU_SCHEDULE":
-      return editMessage(env, chatId, messageId, SCHEDULE_MESSAGE, mainMenuKeyboard());
-
-    case "MENU_STREAK":
-      return editMessage(env, chatId, messageId, STREAK_MESSAGE, mainMenuKeyboard());
-
-    case "MENU_SETTINGS":
-      return editMessage(env, chatId, messageId, SETTINGS_MESSAGE, mainMenuKeyboard());
 
     case "MENU_ADMIN":
       return editMessage(env, chatId, messageId, ADMIN_MENU_MESSAGE, adminMenuKeyboard());
@@ -158,18 +141,16 @@ async function handleCallback(update, env) {
     case "MENU_HELP":
       return editMessage(env, chatId, messageId, HELP_MESSAGE, helpKeyboard());
 
-    // -------- STUDY --------
+    case "BACK_TO_MAIN":
+      return editMessage(env, chatId, messageId, WELCOME_MESSAGE, mainMenuKeyboard());
+
     case "STUDY_START":
       return startStudy(update, env);
 
     case "STUDY_STOP":
       return stopStudy(update, env);
 
-    // -------- COMMON --------
-    case "BACK_TO_MAIN":
-      return editMessage(env, chatId, messageId, WELCOME_MESSAGE, mainMenuKeyboard());
-
     default:
       return;
   }
-}
+  }
