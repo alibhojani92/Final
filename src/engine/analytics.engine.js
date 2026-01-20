@@ -72,3 +72,9 @@ export async function getInstituteAnalytics(db) {
     topPerformers: topPerformers?.results || [],
   };
     }
+export async function getSystemAnalytics(db) {
+  return {
+    users: await db.prepare("SELECT COUNT(*) c FROM users").first(),
+    sessions: await db.prepare("SELECT COUNT(*) c FROM study_sessions").first()
+  };
+    }
