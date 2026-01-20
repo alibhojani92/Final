@@ -1,9 +1,8 @@
 /**
  * router.js
  * --------------------------------
- * Central update router (ONE TIME FILE)
- * Phase-1 + Phase-3 + Phase-4 wiring
- * NEVER modify after this
+ * Central update router
+ * Phase-1 → Phase-5 wiring (LOCKED)
  */
 
 import {
@@ -39,20 +38,21 @@ import {
 
 import { sendMessage, editMessage } from "../services/telegram.service.js";
 
-// ===== Phase-3 handlers =====
+// ===== Phase-3 =====
 import {
   startStudy,
   stopStudy
 } from "../handlers/study.handler.js";
 
-// ===== Phase-4 handlers =====
-import {
-  setDailyTarget
-} from "../handlers/target.handler.js";
+// ===== Phase-4 =====
+import { setDailyTarget } from "../handlers/target.handler.js";
+import { dailyReport } from "../handlers/report.handler.js";
 
+// ===== Phase-5 =====
 import {
-  dailyReport
-} from "../handlers/report.handler.js";
+  startTest,
+  handleTestAnswer
+} from "../handlers/test.handler.js";
 
 /**
  * MAIN ROUTER
@@ -91,19 +91,23 @@ async function handleCommand(update, env) {
     case "/help":
       return sendMessage(env, chatId, HELP_MESSAGE, helpKeyboard());
 
-    // ---- Phase-3 Study ----
+    // ---- Phase-3 (Study) ----
     case "/r":
       return startStudy(update, env);
 
     case "/s":
       return stopStudy(update, env);
 
-    // ---- Phase-4 Target & Report ----
+    // ---- Phase-4 (Target / Report) ----
     case "/target":
       return setDailyTarget(update, env);
 
     case "/report":
       return dailyReport(update, env);
+
+    // ---- Phase-5 (Test) ----
+    case "/test":
+      return startTest(update, env);
 
     default:
       return sendMessage(env, chatId, UNKNOWN_COMMAND);
@@ -119,6 +123,11 @@ async function handleCallback(update, env) {
   const messageId = update.callback_query.message.message_id;
 
   if (!isValidCallback(data)) return;
+
+  // ---- Phase-5 MCQ ANSWERS ----
+  if (data.startsWith("TEST_")) {
+    return handleTestAnswer(update, env);
+  }
 
   switch (data) {
     // -------- MAIN MENU --------
@@ -149,7 +158,7 @@ async function handleCallback(update, env) {
     case "MENU_HELP":
       return editMessage(env, chatId, messageId, HELP_MESSAGE, helpKeyboard());
 
-    // -------- STUDY (PHASE-3 LIVE) --------
+    // -------- STUDY --------
     case "STUDY_START":
       return startStudy(update, env);
 
@@ -163,4 +172,4 @@ async function handleCallback(update, env) {
     default:
       return;
   }
-  }
+}
